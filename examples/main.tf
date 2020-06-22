@@ -41,10 +41,10 @@ output "new_order" {
 }
 
 
-# data "hashicups_order" "twenty_eight" {
-#   id = 36
-# }
+data "hashicups_order" "first" {
+  id = 1
+}
 
-# output "twenty_eighth_order" {
-#   value = data.hashicups_order.twenty_eight
-# }
+output "first_order" {
+  value = data.hashicups_order.first
+}

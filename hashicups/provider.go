@@ -65,15 +65,8 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 			Summary:  "Unable to create HashiCups client",
 			Detail:   "Unable to create anonymous HashiCups client",
 		})
-
 		return nil, diags
 	}
-
-	diags = append(diags, diag.Diagnostic{
-		Severity: diag.Warning,
-		Summary:  "Using unauthenicated HashiCups client",
-		Detail:   "HashiCups client is unauthenicated. Provide user credentials to access restricted resources.",
-	})
 
 	return c, diags
 }

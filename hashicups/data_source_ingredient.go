@@ -49,7 +49,7 @@ func dataSourceIngredients() *schema.Resource {
 func dataSourceIngredientsRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
 
-	// Warning or errors can be collected in a slice type
+	// // Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
 	coffeeID := d.Get("coffee_id").(int)
