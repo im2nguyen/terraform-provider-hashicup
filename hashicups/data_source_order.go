@@ -2,14 +2,16 @@ package hashicups
 
 import (
 	"strconv"
+	"context"
 
 	hc "github.com/hashicorp-demoapp/hashicups-client-go"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 )
 
 func dataSourceOrder() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceOrderRead,
+		ReadContext: dataSourceOrderRead,
 		Schema: map[string]*schema.Schema{
 			"id": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -65,24 +67,27 @@ func dataSourceOrder() *schema.Resource {
 	}
 }
 
-func dataSourceOrderRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceOrderRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	orderID := strconv.Itoa(d.Get("id").(int))
 
 	order, err := c.GetOrder(orderID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orderItems := flattenOrderItems(&order.Items)
 	if err := d.Set("items", orderItems); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(orderID)
 
-	return nil
+	return diags
 }
 
 func flattenOrderItems(orderItems *[]hc.OrderItem) []interface{} {

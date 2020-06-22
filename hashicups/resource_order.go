@@ -1,19 +1,21 @@
 package hashicups
 
 import (
+	"context"
 	"strconv"
 	"time"
 
 	hc "github.com/hashicorp-demoapp/hashicups-client-go"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceOrder() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOrderCreate,
-		Read:   resourceOrderRead,
-		Update: resourceOrderUpdate,
-		Delete: resourceOrderDelete,
+		CreateContext: resourceOrderCreate,
+		ReadContext:   resourceOrderRead,
+		UpdateContext: resourceOrderUpdate,
+		DeleteContext: resourceOrderDelete,
 		Schema: map[string]*schema.Schema{
 			"last_updated": &schema.Schema{
 				Type:     schema.TypeString,
@@ -69,8 +71,11 @@ func resourceOrder() *schema.Resource {
 	}
 }
 
-func resourceOrderCreate(d *schema.ResourceData, m interface{}) error {
+func resourceOrderCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	items := d.Get("items").([]interface{})
 	ois := []hc.OrderItem{}
@@ -93,36 +98,42 @@ func resourceOrderCreate(d *schema.ResourceData, m interface{}) error {
 
 	o, err := c.CreateOrder(ois)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.Itoa(o.ID))
 
-	resourceOrderRead(d, m)
+	resourceOrderRead(ctx, d, m)
 
-	return nil
+	return diags
 }
 
-func resourceOrderRead(d *schema.ResourceData, m interface{}) error {
+func resourceOrderRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	orderID := d.Id()
 
 	order, err := c.GetOrder(orderID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orderItems := flattenOrderItems(&order.Items)
 	if err := d.Set("items", orderItems); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return nil
+	return diags
 }
 
-func resourceOrderUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
+
+	// Warning or errors can be collected in a slice type
+	// var diags diag.Diagnostics
 
 	orderID := d.Id()
 
@@ -151,14 +162,14 @@ func resourceOrderUpdate(d *schema.ResourceData, m interface{}) error {
 
 		_, err := c.UpdateOrder(orderID, ois)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
-		d.SetPartial("last_updated")
+		// d.SetPartial("last_updated")
 		d.Set("last_updated", time.Now().Format(time.RFC850))
 
 		// if err := resourceOrderRead(d, m); err != nil {
-		// 	return err
+		// 	return return diag.FromErr(err)
 		// }
 
 		// Only last_updated attribute will be set, the resource state
@@ -170,22 +181,25 @@ func resourceOrderUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 	d.Partial(false)
 
-	return resourceOrderRead(d, m)
+	return resourceOrderRead(ctx, d, m)
 }
 
-func resourceOrderDelete(d *schema.ResourceData, m interface{}) error {
+func resourceOrderDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	orderID := d.Id()
 
 	err := c.DeleteOrder(orderID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// d.SetId("") is automatically called assuming delete returns no errors, but
 	// it is added here for explicitness.
 	d.SetId("")
 
-	return nil
+	return diags
 }
