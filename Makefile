@@ -1,6 +1,6 @@
 TEST?=$$(go list ./... | grep -v 'vendor') 
 BINARY=terraform-provider-hashicups
-VERSION=0.1
+VERSION=0.2
 
 default: install
 
