@@ -132,13 +132,7 @@ func resourceOrderRead(ctx context.Context, d *schema.ResourceData, m interface{
 func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
 
-	// Warning or errors can be collected in a slice type
-	// var diags diag.Diagnostics
-
 	orderID := d.Id()
-
-	// enable partial state mode
-	d.Partial(true)
 
 	if d.HasChange("items") {
 		items := d.Get("items").([]interface{})
@@ -156,7 +150,6 @@ func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 				},
 				Quantity: i["quantity"].(int),
 			}
-
 			ois = append(ois, oi)
 		}
 
@@ -165,21 +158,8 @@ func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 			return diag.FromErr(err)
 		}
 
-		// d.SetPartial("last_updated")
 		d.Set("last_updated", time.Now().Format(time.RFC850))
-
-		// if err := resourceOrderRead(d, m); err != nil {
-		// 	return return diag.FromErr(err)
-		// }
-
-		// Only last_updated attribute will be set, the resource state
-		// will revert since neither of the following options are true.
-		// 1. SetPartial("items") wasn't called
-		// 2. The function returned before d.Partial(false) was called
-
-		// return nil
 	}
-	d.Partial(false)
 
 	return resourceOrderRead(ctx, d, m)
 }
@@ -202,4 +182,35 @@ func resourceOrderDelete(ctx context.Context, d *schema.ResourceData, m interfac
 	d.SetId("")
 
 	return diags
+}
+
+func flattenOrderItems(orderItems *[]hc.OrderItem) []interface{} {
+	if orderItems != nil {
+		ois := make([]interface{}, len(*orderItems), len(*orderItems))
+
+		for i, orderItem := range *orderItems {
+			oi := make(map[string]interface{})
+
+			oi["coffee"] = flattenCoffee(orderItem.Coffee)
+			oi["quantity"] = orderItem.Quantity
+
+			ois[i] = oi
+		}
+
+		return ois
+	}
+
+	return make([]interface{}, 0)
+}
+
+func flattenCoffee(coffee hc.Coffee) []interface{} {
+	c := make(map[string]interface{})
+	c["id"] = coffee.ID
+	c["name"] = coffee.Name
+	c["teaser"] = coffee.Teaser
+	c["description"] = coffee.Description
+	c["price"] = coffee.Price
+	c["image"] = coffee.Image
+
+	return []interface{}{c}
 }
