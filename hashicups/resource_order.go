@@ -1,19 +1,21 @@
 package hashicups
 
 import (
+	"context"
 	"strconv"
 	"time"
 
 	hc "github.com/hashicorp-demoapp/hashicups-client-go"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceOrder() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceOrderCreate,
-		Read:   resourceOrderRead,
-		Update: resourceOrderUpdate,
-		Delete: resourceOrderDelete,
+		CreateContext: resourceOrderCreate,
+		ReadContext:   resourceOrderRead,
+		UpdateContext: resourceOrderUpdate,
+		DeleteContext: resourceOrderDelete,
 		Schema: map[string]*schema.Schema{
 			"last_updated": &schema.Schema{
 				Type:     schema.TypeString,
@@ -69,8 +71,11 @@ func resourceOrder() *schema.Resource {
 	}
 }
 
-func resourceOrderCreate(d *schema.ResourceData, m interface{}) error {
+func resourceOrderCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	items := d.Get("items").([]interface{})
 	ois := []hc.OrderItem{}
@@ -93,41 +98,41 @@ func resourceOrderCreate(d *schema.ResourceData, m interface{}) error {
 
 	o, err := c.CreateOrder(ois)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.Itoa(o.ID))
 
-	resourceOrderRead(d, m)
+	resourceOrderRead(ctx, d, m)
 
-	return nil
+	return diags
 }
 
-func resourceOrderRead(d *schema.ResourceData, m interface{}) error {
+func resourceOrderRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	orderID := d.Id()
 
 	order, err := c.GetOrder(orderID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	orderItems := flattenOrderItems(&order.Items)
 	if err := d.Set("items", orderItems); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return nil
+	return diags
 }
 
-func resourceOrderUpdate(d *schema.ResourceData, m interface{}) error {
+func resourceOrderUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
 
 	orderID := d.Id()
-
-	// enable partial state mode
-	d.Partial(true)
 
 	if d.HasChange("items") {
 		items := d.Get("items").([]interface{})
@@ -145,47 +150,67 @@ func resourceOrderUpdate(d *schema.ResourceData, m interface{}) error {
 				},
 				Quantity: i["quantity"].(int),
 			}
-
 			ois = append(ois, oi)
 		}
 
 		_, err := c.UpdateOrder(orderID, ois)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
-		d.SetPartial("last_updated")
 		d.Set("last_updated", time.Now().Format(time.RFC850))
-
-		// if err := resourceOrderRead(d, m); err != nil {
-		// 	return err
-		// }
-
-		// Only last_updated attribute will be set, the resource state
-		// will revert since neither of the following options are true.
-		// 1. SetPartial("items") wasn't called
-		// 2. The function returned before d.Partial(false) was called
-
-		// return nil
 	}
-	d.Partial(false)
 
-	return resourceOrderRead(d, m)
+	return resourceOrderRead(ctx, d, m)
 }
 
-func resourceOrderDelete(d *schema.ResourceData, m interface{}) error {
+func resourceOrderDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	c := m.(*hc.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	orderID := d.Id()
 
 	err := c.DeleteOrder(orderID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// d.SetId("") is automatically called assuming delete returns no errors, but
 	// it is added here for explicitness.
 	d.SetId("")
 
-	return nil
+	return diags
+}
+
+func flattenOrderItems(orderItems *[]hc.OrderItem) []interface{} {
+	if orderItems != nil {
+		ois := make([]interface{}, len(*orderItems), len(*orderItems))
+
+		for i, orderItem := range *orderItems {
+			oi := make(map[string]interface{})
+
+			oi["coffee"] = flattenCoffee(orderItem.Coffee)
+			oi["quantity"] = orderItem.Quantity
+
+			ois[i] = oi
+		}
+
+		return ois
+	}
+
+	return make([]interface{}, 0)
+}
+
+func flattenCoffee(coffee hc.Coffee) []interface{} {
+	c := make(map[string]interface{})
+	c["id"] = coffee.ID
+	c["name"] = coffee.Name
+	c["teaser"] = coffee.Teaser
+	c["description"] = coffee.Description
+	c["price"] = coffee.Price
+	c["image"] = coffee.Image
+
+	return []interface{}{c}
 }
