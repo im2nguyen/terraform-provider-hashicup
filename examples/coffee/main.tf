@@ -7,7 +7,10 @@ terraform {
   }
 }
 
-provider "hashicups" {}
+provider "hashicups" {
+  username = "education"
+  password = "test123"
+}
 
 variable "coffee_name" {
   type    = string

@@ -10,6 +10,8 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/empty
 github.com/golang/protobuf/ptypes/timestamp
+# github.com/hashicorp-demoapp/hashicups-client-go v0.0.0-20200508203820-4c67e90efb8e
+github.com/hashicorp-demoapp/hashicups-client-go
 # github.com/hashicorp/errwrap v1.0.0
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320
