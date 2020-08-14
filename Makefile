@@ -1,6 +1,10 @@
-TEST?=$$(go list ./... | grep -v 'vendor') 
-BINARY=terraform-provider-hashicups
+TEST?=$$(go list ./... | grep -v 'vendor')
+HOSTNAME=hashicorp.com
+NAMESPACE=edu
+NAME=hashicups
+BINARY=terraform-provider-${NAME}
 VERSION=0.2
+OS_ARCH=darwin_amd64
 
 default: install
 
@@ -20,10 +24,10 @@ release:
 	GOOS=solaris GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_solaris_amd64
 	GOOS=windows GOARCH=386 go build -o ./bin/${BINARY}_${VERSION}_windows_386
 	GOOS=windows GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_windows_amd64
-	chmod +x ./bin/*
 
 install: build
-	mv ${BINARY} ~/.terraform.d/plugins
+	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
+	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 
 test: 
 	go test -i $(TEST) || exit 1                                                   
